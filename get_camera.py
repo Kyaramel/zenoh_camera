@@ -3,6 +3,8 @@ import zenoh
 import numpy as np
 import base64
 
+image = None
+
 
 def display_frame(sample):
     """
@@ -11,6 +13,7 @@ def display_frame(sample):
     引数:
     sample (Sample): Zenohから受信したサンプルデータ
     """
+    global image
     if sample is None or len(sample.payload) == 0:
         return
 
@@ -23,15 +26,11 @@ def display_frame(sample):
     frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
     resized_frame = cv2.resize(frame, (600, 480))
 
-    print(f"frame:{resized_frame}, shape:{resized_frame.shape}")
-    # フレームが有効かどうかをチェック
-    if resized_frame is not None and resized_frame.size > 0:
-        # フレームを表示
-        cv2.imshow("Received Frame", resized_frame)
-        cv2.waitKey(1)  # ウィンドウを更新
+    image = resized_frame
 
 
 def main():
+    global image
     z = zenoh.open(zenoh.Config())
     resource_path = "demo/camera"
 
@@ -42,13 +41,14 @@ def main():
     try:
         while True:
             # フレームを表示
-            cv2.imshow("Live Camera Feed", frame)
+            if image is not None and image.size > 0:
+                cv2.imshow("Live Camera Feed", image)
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
-    except KeyboardInterrupt:
+    except Exception as e:
+        print(e)
         print("終了します...")
     finally:
-        sub.close()
         z.close()
 
 
